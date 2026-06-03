@@ -33,7 +33,7 @@ USE membership_system;
 
 ```powershell
 cd membership_system
-python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+python -m uvicorn main:app --host 0.0.0.0 --port 8001
 ```
 
 后端数据库配置在 membership_system/database.py 中。
