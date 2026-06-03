@@ -4,14 +4,14 @@
 
 ## 目录结构
 
-- Membership/ 后端（Spring Boot）
+- membership_system/ 后端（FastAPI + SQLAlchemy）
 - frontend/ 前端（Vite + Vue）
 - databases/ 数据库脚本
 
 ## 环境要求
 
-- JDK 17+（或与项目当前配置匹配的 JDK 版本）
-- Maven 3.8+
+- Python 3.10+（建议）
+- pip / venv
 - Node.js 18+（或与前端依赖兼容的版本）
 - MySQL 8+
 
@@ -32,11 +32,11 @@ USE membership_system;
 ### 2) 启动后端
 
 ```powershell
-cd Membership
-mvn spring-boot:run
+cd membership_system
+python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-后端默认读取 Membership/src/main/resources/application.yaml 中的数据库配置。
+后端数据库配置在 membership_system/database.py 中。
 
 ### 3) 启动前端
 
@@ -48,12 +48,14 @@ npm run dev
 
 浏览器访问终端输出的开发服务器地址即可。
 
+如需修改后端地址，可复制 frontend/.env.example 为 frontend/.env.local 并调整其中的变量。
+
 ## 配置说明
 
-- 后端数据库连接请在 application.yaml 中配置（主机、端口、用户名、密码）。
-- 文件上传目录与公共访问前缀可在 application.yaml 的 society.file 节点中调整。
+- 后端数据库连接请在 membership_system/database.py 中配置（主机、端口、用户名、密码）。
+- 前端默认通过 `/api` 访问后端，Vite 开发代理目标可在 frontend/.env.local 中调整。
 
 ## 常见问题
 
 - 如果出现数据库字段不存在报错，请确认数据库结构已更新为最新的 SQL 脚本。
-- 扫描版 PDF 暂不支持 OCR 解析。
+- 扫描版 PDF 解析依赖后端 OCR 与文本提取逻辑，效果取决于简历版式和清晰度。

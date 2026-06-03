@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+sqlalchemy
+pymysql
+python-multipart
+pymupdf
+pillow
+numpy
+paddleocr==2.7.3
+paddlepaddle==2.6.2
