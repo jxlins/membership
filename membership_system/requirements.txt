@@ -5,6 +5,10 @@ pymysql
 python-multipart
 pymupdf
 pillow
-numpy
-paddleocr==2.7.3
-paddlepaddle==2.6.2
+
+numpy===2.2.6
+protobuf==7.35.0
+opencv-python-headless==4.10.0.84
+
+paddlepaddle==3.2.2
+paddleocr== 3.2.0

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <main class="page-shell">
     <section class="hero-panel">
       <div class="hero-copy">
@@ -6,7 +6,7 @@
         <h1 class="page-title">学会会员信息采集</h1>
         <p class="page-subtitle">上传 PDF 简历，系统自动抽取关键资料并回填表单，用户确认后再提交入库。</p>
         <div class="hero-actions">
-          <el-button v-if="profileId || memberNo" type="primary" plain @click="restoreDraft">恢复本地草稿</el-button>
+          <el-button type="primary" plain @click="openAdminAccess">会员信息管理</el-button>
           <el-button text @click="resetForm">清空当前表单</el-button>
         </div>
       </div>
@@ -20,10 +20,6 @@
           <div class="hero-stat">
             <span class="stat-label">档案 ID</span>
             <strong>{{ profileId || '待生成' }}</strong>
-          </div>
-          <div class="hero-stat">
-            <span class="stat-label">会员编号</span>
-            <strong>{{ memberNo || '待生成' }}</strong>
           </div>
           <div class="hero-stat wide">
             <span class="stat-label">当前文件</span>
@@ -46,7 +42,7 @@
           <div>
             <span class="section-kicker">Step 01</span>
             <h2 class="section-title">上传与解析</h2>
-            <p class="section-desc">先保存简历文件，再由用户决定是否进行智能解析。</p>
+            <p class="section-desc">上传简历为可选项；不上传时也可以直接填写表单并提交保存。</p>
           </div>
           <span :class="['status-pill', parseStatusClass]">{{ parseStatusText }}</span>
         </div>
@@ -56,10 +52,6 @@
             <div class="meta-item">
               <span>档案 ID</span>
               <strong>{{ profileId || '上传简历后生成' }}</strong>
-            </div>
-            <div class="meta-item">
-              <span>会员编号</span>
-              <strong>{{ memberNo || '上传简历后生成' }}</strong>
             </div>
             <div class="meta-item">
               <span>当前文件</span>
@@ -136,8 +128,15 @@
                 </el-form-item>
               </el-col>
               <el-col :xs="24" :md="12">
-                <el-form-item label="出生年份">
-                  <el-input-number v-model="form.birthYear" :min="1900" :max="new Date().getFullYear()" controls-position="right" />
+                <el-form-item label="出生日期">
+                  <el-date-picker
+                    v-model="form.birthDate"
+                    type="date"
+                    value-format="YYYY-MM-DD"
+                    format="YYYY-MM-DD"
+                    placeholder="请选择出生日期"
+                    :disabled-date="disableFutureDate"
+                  />
                 </el-form-item>
               </el-col>
               <el-col :xs="24" :md="12">
@@ -213,13 +212,35 @@
                 </el-form-item>
               </el-col>
               <el-col :span="24">
-                <el-form-item label="个人简介">
-                  <el-input v-model="form.personalBio" type="textarea" :rows="4" placeholder="请核对或补充个人简介" />
+                <el-form-item label="教育背景">
+                  <el-input v-model="form.educationBackground" type="textarea" :rows="5" placeholder="请核对或补充教育背景" />
                 </el-form-item>
               </el-col>
               <el-col :span="24">
                 <el-form-item label="代表性成果">
-                  <el-input v-model="form.representativeAchievements" type="textarea" :rows="5" placeholder="可填写项目、论文、获奖、代表性工作等" />
+                  <div class="achievement-list">
+                    <div v-for="(_, index) in form.representativeAchievements" :key="index" class="achievement-item">
+                      <el-input
+                        v-model="form.representativeAchievements[index]"
+                        type="textarea"
+                        :rows="2"
+                        :placeholder="`代表性成果 ${index + 1}`"
+                      />
+                      <el-button
+                        class="achievement-remove"
+                        type="danger"
+                        plain
+                        :disabled="form.representativeAchievements.length === 1"
+                        @click="removeAchievement(index)"
+                      >删除</el-button>
+                    </div>
+                    <el-button
+                      type="primary"
+                      plain
+                      :disabled="form.representativeAchievements.length >= 10"
+                      @click="addAchievement"
+                    >新增成果</el-button>
+                  </div>
                 </el-form-item>
               </el-col>
               <el-col :span="24">
@@ -240,28 +261,66 @@
         </el-form>
       </section>
     </div>
+
+    <el-dialog v-model="loginDialogVisible" title="管理员登录" width="420px">
+      <el-form ref="loginFormRef" :model="loginForm" :rules="loginRules" label-width="84px">
+        <el-form-item label="账号" prop="username">
+          <el-input v-model="loginForm.username" autocomplete="username" />
+        </el-form-item>
+        <el-form-item label="密码" prop="password">
+          <el-input v-model="loginForm.password" type="password" show-password autocomplete="current-password" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="loginDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="loginLoading" @click="submitAdminLogin">登录并进入</el-button>
+      </template>
+    </el-dialog>
   </main>
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { parseResume, skipParseResume, submitMemberProfile, uploadResume } from '../../api/societyMember'
+import { adminLogin, getAdminSession } from '../../api/admin'
+import {
+  createMemberProfileDraft,
+  parseResume,
+  skipParseResume,
+  submitMemberProfile,
+  uploadResume
+} from '../../api/societyMember'
+import { clearAdminAuth, getAdminToken, setAdminAuth } from '../../utils/adminAuth'
+
+const uploadBaseUrl = (import.meta.env.VITE_UPLOAD_BASE_URL || '/member-uploads').replace(/\/$/, '')
+const router = useRouter()
 
 const formRef = ref(null)
+const loginFormRef = ref(null)
 const fileList = ref([])
 const selectedFile = ref(null)
 const uploading = ref(false)
 const parsing = ref(false)
 const submitting = ref(false)
-const profileId = ref(Number(localStorage.getItem('societyMemberProfileId') || 0) || null)
-const memberNo = ref(localStorage.getItem('societyMemberNo') || '')
+const loginLoading = ref(false)
+const loginDialogVisible = ref(false)
+const profileId = ref(null)
 const resumeName = ref('')
 const resumeUrl = ref('')
 const parseStatus = ref('NOT_PARSED')
 
 const form = reactive(createEmptyForm())
-const draftStorageKey = 'societyMemberDraft'
+
+if (typeof window !== 'undefined') {
+  window.localStorage.removeItem('societyMemberDraft')
+  window.localStorage.removeItem('societyMemberProfileId')
+}
+
+const loginForm = reactive({
+  username: '',
+  password: ''
+})
 
 const rules = {
   memberName: [{ required: true, message: '请输入姓名', trigger: 'blur' }],
@@ -270,6 +329,11 @@ const rules = {
     { type: 'email', message: '邮箱格式不正确', trigger: 'blur' }
   ],
   organization: [{ required: true, message: '请输入所在单位', trigger: 'blur' }]
+}
+
+const loginRules = {
+  username: [{ required: true, message: '请输入管理员账号', trigger: 'blur' }],
+  password: [{ required: true, message: '请输入管理员密码', trigger: 'blur' }]
 }
 
 const parseStatusText = computed(() => {
@@ -305,7 +369,7 @@ const completionPercent = computed(() => {
     'highestDegree',
     'professionalField',
     'researchDirection',
-    'personalBio'
+    'educationBackground'
   ]
   const filled = keys.filter(key => {
     const value = form[key]
@@ -314,17 +378,13 @@ const completionPercent = computed(() => {
   return Math.round((filled / keys.length) * 100)
 })
 
-onMounted(() => {
-  restoreDraft()
-})
-
 function createEmptyForm() {
   return {
     memberName: '',
     email: '',
     phone: '',
     gender: '',
-    birthYear: null,
+    birthDate: '',
     countryRegion: '',
     organization: '',
     department: '',
@@ -332,8 +392,8 @@ function createEmptyForm() {
     highestDegree: '',
     professionalField: '',
     researchDirection: '',
-    personalBio: '',
-    representativeAchievements: '',
+    educationBackground: '',
+    representativeAchievements: [''],
     homepage: '',
     orcid: '',
     scholarProfile: '',
@@ -372,8 +432,6 @@ async function handleUpload(needParse) {
       await skipUploadedResume()
       ElMessage.success('简历已上传，未执行解析')
     }
-
-    persistDraft()
   } finally {
     uploading.value = false
   }
@@ -381,17 +439,9 @@ async function handleUpload(needParse) {
 
 function applyUploadResponse(response) {
   profileId.value = response.profileId
-  memberNo.value = response.memberNo || ''
   resumeName.value = response.resumeOriginalName || ''
   resumeUrl.value = normalizeResumeUrl(response.resumeFileUrl || '')
   parseStatus.value = response.resumeParseStatus || 'NOT_PARSED'
-
-  if (profileId.value) {
-    localStorage.setItem('societyMemberProfileId', String(profileId.value))
-  }
-  if (memberNo.value) {
-    localStorage.setItem('societyMemberNo', memberNo.value)
-  }
 }
 
 async function parseUploadedResume() {
@@ -402,7 +452,6 @@ async function parseUploadedResume() {
 
   parsing.value = true
   parseStatus.value = 'PARSING'
-  persistDraft()
 
   try {
     const parsedResponse = await parseResume(profileId.value)
@@ -410,13 +459,11 @@ async function parseUploadedResume() {
 
     if (parsedResponse.form) {
       applyParsedData(parsedResponse.form)
-      persistDraft()
     }
 
     ElMessage.success('简历解析成功，已自动填写表单')
   } catch (error) {
     parseStatus.value = 'PARSE_FAILED'
-    persistDraft()
     ElMessage.error(error.message || '简历解析失败')
   } finally {
     parsing.value = false
@@ -432,8 +479,13 @@ async function skipUploadedResume() {
 }
 
 function applyParsedData(parsedData) {
+  const normalized = normalizeParsedData(parsedData)
   Object.keys(form).forEach(key => {
-    const value = parsedData[key]
+    const value = normalized[key]
+    if (Array.isArray(value)) {
+      form[key] = value.length ? value : ['']
+      return
+    }
     if (value !== undefined && value !== null && String(value).trim() !== '') {
       form[key] = value
     }
@@ -441,59 +493,122 @@ function applyParsedData(parsedData) {
 }
 
 async function submitProfile() {
-  if (!profileId.value) {
-    ElMessage.warning('请先上传简历')
-    return
-  }
-
   await formRef.value.validate()
   submitting.value = true
   try {
-    const response = await submitMemberProfile({ profileId: profileId.value, ...form })
-    memberNo.value = response.memberNo || memberNo.value
+    await ensureProfileId()
+    const response = await submitMemberProfile({ profileId: profileId.value, ...buildSubmitPayload() })
     parseStatus.value = response.memberStatus || 'SUBMITTED'
-    persistDraft()
     ElMessage.success('会员信息提交成功')
   } finally {
     submitting.value = false
   }
 }
 
-function persistDraft() {
-  localStorage.setItem(draftStorageKey, JSON.stringify({
-    profileId: profileId.value,
-    memberNo: memberNo.value,
-    resumeName: resumeName.value,
-    resumeUrl: resumeUrl.value,
-    parseStatus: parseStatus.value,
-    form: { ...form }
-  }))
-}
-
-function restoreDraft() {
-  const draftText = localStorage.getItem(draftStorageKey)
-  if (!draftText) {
+async function openAdminAccess() {
+  if (!getAdminToken()) {
+    loginDialogVisible.value = true
     return
   }
 
   try {
-    const draft = JSON.parse(draftText)
-    profileId.value = draft.profileId || profileId.value
-    memberNo.value = draft.memberNo || memberNo.value
-    resumeName.value = draft.resumeName || ''
-    resumeUrl.value = normalizeResumeUrl(draft.resumeUrl || '')
-    parseStatus.value = draft.parseStatus || 'NOT_PARSED'
-    Object.keys(form).forEach(key => {
-      form[key] = draft.form?.[key] ?? createEmptyForm()[key]
-    })
+    await getAdminSession()
+    await router.push('/society/member-admin')
   } catch (error) {
-    ElMessage.warning('本地草稿损坏，已忽略')
+    clearAdminAuth()
+    loginDialogVisible.value = true
+  }
+}
+
+async function submitAdminLogin() {
+  await loginFormRef.value.validate()
+  loginLoading.value = true
+  try {
+    const response = await adminLogin(loginForm)
+    setAdminAuth(response.token, response.username)
+    loginDialogVisible.value = false
+    loginForm.password = ''
+    ElMessage.success('管理员登录成功')
+    await router.push('/society/member-admin')
+  } finally {
+    loginLoading.value = false
+  }
+}
+
+async function ensureProfileId() {
+  if (profileId.value) {
+    return profileId.value
+  }
+
+  const response = await createMemberProfileDraft()
+  profileId.value = response.profileId
+  parseStatus.value = response.resumeParseStatus || 'NOT_PARSED'
+  return profileId.value
+}
+
+function disableFutureDate(value) {
+  return value.getTime() > Date.now()
+}
+
+function addAchievement() {
+  if (form.representativeAchievements.length < 10) {
+    form.representativeAchievements.push('')
+  }
+}
+
+function removeAchievement(index) {
+  if (form.representativeAchievements.length <= 1) {
+    form.representativeAchievements[0] = ''
+    return
+  }
+  form.representativeAchievements.splice(index, 1)
+}
+
+function splitAchievements(value) {
+  if (Array.isArray(value)) {
+    return value.slice(0, 10).map(item => String(item || '').trim())
+  }
+  if (!value) {
+    return ['']
+  }
+  const items = String(value).split(/[;；]\s*/).map(item => item.trim()).filter(Boolean).slice(0, 10)
+  return items.length ? items : ['']
+}
+
+function normalizeParsedData(parsedData) {
+  return {
+    ...parsedData,
+    birthDate: parsedData.birthDate || birthDateFromYear(parsedData.birthYear),
+    educationBackground: parsedData.educationBackground || parsedData.personalResume || parsedData.personalBio || '',
+    representativeAchievements: splitAchievements(parsedData.representativeAchievements)
+  }
+}
+
+function birthDateFromYear(year) {
+  if (!year) {
+    return ''
+  }
+  return `${year}-01-01`
+}
+
+function buildSubmitPayload() {
+  return {
+    ...form,
+    representativeAchievements: form.representativeAchievements
+      .map(item => String(item || '').trim())
+      .filter(Boolean)
+      .slice(0, 10)
   }
 }
 
 function resetForm() {
+  profileId.value = null
+  resumeName.value = ''
+  resumeUrl.value = ''
+  parseStatus.value = 'NOT_PARSED'
+  selectedFile.value = null
+  fileList.value = []
   Object.assign(form, createEmptyForm())
-  persistDraft()
 }
 
 function normalizeResumeUrl(value) {
@@ -501,10 +616,20 @@ function normalizeResumeUrl(value) {
     return ''
   }
 
-  const normalized = value.replace(/\\/g, '/').replace(/^\.\/?/, '')
-  if (normalized.startsWith('uploads/')) {
-    return `/${normalized}`
+  if (/^https?:\/\//i.test(value)) {
+    return value
   }
+
+  const normalized = value.replace(/\\/g, '/').replace(/^\.\/?/, '')
+
+  if (normalized.startsWith('/uploads/')) {
+    return normalized.replace(/^\/uploads/, uploadBaseUrl)
+  }
+
+  if (normalized.startsWith('uploads/')) {
+    return `${uploadBaseUrl}/${normalized.replace(/^uploads\//, '')}`
+  }
+
   return normalized
 }
 </script>

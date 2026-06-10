@@ -1,0 +1,16 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+.pytest_cache/
+.idea/
+.git/
+.gitignore
+
+uploads/
+dist/
+node_modules/
+
+*.pdf
+*.png

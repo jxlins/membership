@@ -1,5 +1,9 @@
 import request from './request'
 
+export function createMemberProfileDraft() {
+  return request.post('/member-profile/draft')
+}
+
 export function uploadResume(data) {
   return request.post('/member-profile/resume/upload', data, {
     headers: {

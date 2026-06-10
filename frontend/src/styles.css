@@ -1,4 +1,4 @@
-:root {
+﻿:root {
   --bg-start: #eef4ff;
   --bg-end: #f8fafc;
   --panel: rgba(255, 255, 255, 0.86);
@@ -467,6 +467,67 @@ a {
   width: 100%;
 }
 
+.achievement-list {
+  display: grid;
+  width: 100%;
+  gap: 12px;
+}
+
+.achievement-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px;
+  border: 1px solid rgba(80, 105, 145, 0.16);
+  border-radius: 14px;
+  background: #fff;
+}
+
+.achievement-remove {
+  min-width: 72px;
+}
+
+.admin-filter-grid {
+  display: grid;
+  grid-template-columns: minmax(260px, 1.4fr) minmax(180px, 0.7fr) auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.admin-filter-actions,
+.table-actions,
+.table-footer {
+  display: flex;
+  gap: 10px;
+}
+
+.admin-filter-actions {
+  justify-content: flex-end;
+}
+
+.table-actions {
+  flex-wrap: wrap;
+}
+
+.admin-table .status-pill {
+  min-width: 72px;
+}
+
+.table-footer {
+  justify-content: flex-end;
+  margin-top: 18px;
+}
+
+.dialog-list {
+  display: grid;
+  gap: 6px;
+}
+
+.admin-descriptions .file-link {
+  white-space: normal;
+}
+
 .form-actions {
   position: sticky;
   bottom: 16px;
@@ -512,6 +573,15 @@ a {
     flex-direction: column;
   }
 
+  .admin-filter-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-filter-actions,
+  .table-footer {
+    justify-content: flex-start;
+  }
+
   .form-actions > div:last-child {
     display: flex;
     width: 100%;
@@ -542,13 +612,23 @@ a {
     padding: 16px 14px 2px;
   }
 
+  .achievement-item {
+    grid-template-columns: 1fr;
+  }
+
+  .achievement-remove {
+    width: 100%;
+  }
+
   .resume-actions,
-  .form-actions > div:last-child {
+  .form-actions > div:last-child,
+  .admin-filter-actions {
     flex-direction: column;
   }
 
   .resume-actions .el-button,
-  .form-actions .el-button {
+  .form-actions .el-button,
+  .admin-filter-actions .el-button {
     width: 100%;
     margin-left: 0 !important;
   }

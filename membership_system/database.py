@@ -1,7 +1,12 @@
+import os
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
-DATABASE_URL = "mysql+pymysql://root:123456@127.0.0.1:3306/research_education?charset=utf8mb4"
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    "mysql+pymysql://root:123456@127.0.0.1:3306/research_education?charset=utf8mb4",
+)
 
 engine = create_engine(
     DATABASE_URL,

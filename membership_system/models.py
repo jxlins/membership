@@ -1,4 +1,4 @@
-from sqlalchemy import Column, BigInteger, String, Integer, Text, Date, DateTime
+from sqlalchemy import Column, BigInteger, String, Text, Date, DateTime
 from sqlalchemy.sql import func
 
 from database import Base
@@ -9,14 +9,12 @@ class SocietyMemberProfile(Base):
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
 
-    member_no = Column(String(100), nullable=False, unique=True)
-
     member_name = Column(String(100))
     email = Column(String(150), unique=True)
     phone = Column(String(50))
 
     gender = Column(String(20))
-    birth_year = Column(Integer)
+    birth_date = Column(Date)
     country_region = Column(String(100))
 
     organization = Column(String(255))
@@ -26,7 +24,7 @@ class SocietyMemberProfile(Base):
     professional_field = Column(String(255))
 
     research_direction = Column(Text)
-    personal_bio = Column(Text)
+    education_background = Column(Text)
     representative_achievements = Column(Text)
     homepage = Column(String(500))
     orcid = Column(String(100))

@@ -1,14 +1,12 @@
 CREATE TABLE society_member_profile (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
 
-    member_no VARCHAR(100) NOT NULL COMMENT '会员编号',
-
     member_name VARCHAR(100) DEFAULT NULL COMMENT '姓名',
     email VARCHAR(150) DEFAULT NULL COMMENT '邮箱',
     phone VARCHAR(50) DEFAULT NULL COMMENT '手机号',
 
     gender VARCHAR(20) DEFAULT NULL COMMENT '性别',
-    birth_year INT DEFAULT NULL COMMENT '出生年份',
+    birth_date DATE DEFAULT NULL COMMENT '出生日期',
     country_region VARCHAR(100) DEFAULT NULL COMMENT '国家或地区',
 
     organization VARCHAR(255) DEFAULT NULL COMMENT '所在单位',
@@ -18,7 +16,7 @@ CREATE TABLE society_member_profile (
     professional_field VARCHAR(255) DEFAULT NULL COMMENT '专业领域',
 
     research_direction TEXT DEFAULT NULL COMMENT '研究方向',
-    personal_bio TEXT DEFAULT NULL COMMENT '个人简介',
+    education_background TEXT DEFAULT NULL COMMENT '教育背景',
     representative_achievements TEXT DEFAULT NULL COMMENT '代表性成果',
     homepage VARCHAR(500) DEFAULT NULL COMMENT '个人主页',
     orcid VARCHAR(100) DEFAULT NULL COMMENT 'ORCID',
@@ -42,6 +40,5 @@ CREATE TABLE society_member_profile (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
-    UNIQUE KEY uk_member_no (member_no),
     UNIQUE KEY uk_email (email)
 ) COMMENT='学会会员信息表';

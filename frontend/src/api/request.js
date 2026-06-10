@@ -1,11 +1,22 @@
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
 
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '/api'
+import { clearAdminAuth, getAdminToken } from '../utils/adminAuth'
+
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '/member-api'
 
 const request = axios.create({
   baseURL: apiBaseUrl,
-  timeout: 180000
+  timeout: 300000
+})
+
+request.interceptors.request.use(config => {
+  const token = getAdminToken()
+  if (token) {
+    config.headers = config.headers || {}
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
 })
 
 request.interceptors.response.use(
@@ -22,6 +33,9 @@ request.interceptors.response.use(
     return body
   },
   error => {
+    if (error.response?.status === 401) {
+      clearAdminAuth()
+    }
     const message = error.response?.data?.message || error.response?.data?.detail || error.message || '网络请求失败'
     ElMessage.error(message)
     return Promise.reject(new Error(message))
